@@ -8,6 +8,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from core.pipeline import ProcessingPipeline
 
+
 class DownloadHandler(FileSystemEventHandler):
 
     def __init__(self, pipeline):
@@ -29,9 +30,31 @@ class DownloadHandler(FileSystemEventHandler):
             print(f"Error processing file: {e}")
 
 
+def process_existing_files(folder_path, pipeline):
+
+    print("Scanning existing files...")
+
+    for file in os.listdir(folder_path):
+
+        file_path = os.path.join(folder_path, file)
+
+        if os.path.isfile(file_path):
+
+            print(f"Processing existing file: {file_path}")
+
+            try:
+                pipeline.process_file(file_path)
+
+            except Exception as e:
+                print(f"Error processing file: {e}")
+
+
 def start_watching(folder_path):
 
     pipeline = ProcessingPipeline(folder_path)
+
+    # Process files already in folder
+    process_existing_files(folder_path, pipeline)
 
     event_handler = DownloadHandler(pipeline)
 
@@ -50,3 +73,10 @@ def start_watching(folder_path):
         observer.stop()
 
     observer.join()
+
+
+if __name__ == "__main__":
+
+    downloads_path = r"D:\Download_chrome(P1)"
+
+    start_watching(downloads_path)

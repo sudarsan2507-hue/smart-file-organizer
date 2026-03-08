@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 
 
 class FileOrganizer:
@@ -8,30 +9,51 @@ class FileOrganizer:
 
         self.base_directory = base_directory
 
-        self.category_folders = {
-            "Resume": "Resume",
+        self.categories = {
+            "Images": "Images",
+            "Videos": "Videos",
+            "Archives": "Archives",
+            "Documents": "Documents",
             "Finance": "Finance",
             "Study": "Study",
             "Projects": "Projects",
+            "Resume": "Resume",
             "Personal": "Personal",
+            "Audio": "Audio",
             "Others": "Others"
         }
 
 
     def organize(self, file_path, category):
 
-        folder_name = self.category_folders.get(category, "Others")
+        # Get folder name
+        folder = self.categories.get(category, "Others")
 
-        destination_folder = os.path.join(self.base_directory, folder_name)
-
-        # create folder if it doesn't exist
+        # Create destination folder
+        destination_folder = os.path.join(self.base_directory, folder)
         os.makedirs(destination_folder, exist_ok=True)
 
-        file_name = os.path.basename(file_path)
+        filename = os.path.basename(file_path)
+        destination = os.path.join(destination_folder, filename)
 
-        destination_path = os.path.join(destination_folder, file_name)
+        # Prevent moving if already in correct folder
+        if os.path.dirname(file_path) == destination_folder:
+            return
 
-        # move file
-        shutil.move(file_path, destination_path)
+        # Wait for file to be released (important for downloads)
+        for attempt in range(10):
 
-        print(f"Moved {file_name} → {folder_name}")
+            try:
+                shutil.move(file_path, destination)
+                print(f"Moved {filename} -> {folder}")
+                return
+
+            except PermissionError:
+                print(f"File locked, retrying... ({attempt+1}/10)")
+                time.sleep(1)
+
+            except Exception as e:
+                print(f"Move failed: {e}")
+                return
+
+        print(f"Could not move {filename} (file still in use)")
