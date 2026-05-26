@@ -26,6 +26,8 @@ class ProcessingPipeline:
         audio_ext = [".mp3", ".wav", ".aac", ".flac"]
         archive_ext = [".zip", ".rar", ".7z"]
         document_ext = [".pdf", ".docx", ".txt"]
+        
+        confidence = 1.0
 
         if ext in image_ext:
             category = "Images"
@@ -47,15 +49,24 @@ class ProcessingPipeline:
 
             if not text.strip():
                 category = "Others"
+                confidence = 0.0
 
             else:
                 result = self.classifier.classify(text)
                 category = result["category"]
+                confidence = result["confidence"]
 
-        print(f"{filename} -> {category}")
+        # Apply threshold logic
+        THRESHOLD = 0.65
+        if confidence < THRESHOLD and category != "Others":
+            final_category = "Review"
+            print(f"{filename} -> {category} (Confidence {confidence:.2f} < {THRESHOLD}) -> Moving to Review")
+        else:
+            final_category = category
+            print(f"{filename} -> {final_category} (Confidence {confidence:.2f})")
 
         # -------- MOVE FILE --------
 
-        self.organizer.organize(file_path, category)
+        self.organizer.organize(file_path, final_category)
 
-        return category
+        return final_category

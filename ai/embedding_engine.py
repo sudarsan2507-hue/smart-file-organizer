@@ -40,5 +40,6 @@ class EmbeddingEngine:
             scores[category] = float(similarity)
 
         best_category = max(scores, key=scores.get)
+        confidence = scores[best_category]
 
-        return best_category, scores
+        return best_category, confidence, scores

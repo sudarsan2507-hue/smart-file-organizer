@@ -20,7 +20,8 @@ class FileOrganizer:
             "Resume": "Resume",
             "Personal": "Personal",
             "Audio": "Audio",
-            "Others": "Others"
+            "Others": "Others",
+            "Review": "Review"
         }
 
 

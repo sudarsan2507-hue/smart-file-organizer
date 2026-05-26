@@ -20,5 +20,9 @@ class KeywordEngine:
             scores[category] = score
 
         best_category = max(scores, key=scores.get)
+        best_score = scores[best_category]
+        total_keywords_found = sum(scores.values())
 
-        return best_category, scores
+        confidence = (best_score / total_keywords_found) if total_keywords_found > 0 else 0.0
+
+        return best_category, confidence, scores

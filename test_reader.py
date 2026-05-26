@@ -10,4 +10,5 @@ result = classifier.classify(text)
 
 print("Method Used:", result["method"])
 print("Detected Category:", result["category"])
+print("Confidence:", result["confidence"])
 print("Scores:", result["scores"])
