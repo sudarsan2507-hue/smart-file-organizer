@@ -15,8 +15,7 @@ class HybridClassifier:
 
     def classify(self, text):
 
-        keyword_category, keyword_scores = self.keyword_engine.classify(text)
-
+        keyword_category, keyword_confidence, keyword_scores = self.keyword_engine.classify(text)
         keyword_score = keyword_scores[keyword_category]
 
         # If keyword match is strong enough, use it
@@ -24,14 +23,16 @@ class HybridClassifier:
             return {
                 "method": "keyword",
                 "category": keyword_category,
+                "confidence": keyword_confidence,
                 "scores": keyword_scores
             }
 
         # Otherwise use AI embeddings
-        embedding_category, embedding_scores = self.embedding_engine.classify(text)
+        embedding_category, embedding_confidence, embedding_scores = self.embedding_engine.classify(text)
 
         return {
             "method": "embedding",
             "category": embedding_category,
+            "confidence": embedding_confidence,
             "scores": embedding_scores
         }
