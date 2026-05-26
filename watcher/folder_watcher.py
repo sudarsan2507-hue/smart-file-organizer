@@ -9,22 +9,41 @@ from watchdog.events import FileSystemEventHandler
 from core.pipeline import ProcessingPipeline
 
 
+def is_file_stable(filepath):
+    initial_size = os.path.getsize(filepath)
+    time.sleep(2)
+    final_size = os.path.getsize(filepath)
+    if initial_size == final_size:
+        return True
+    else:
+        return False
+
+
 class DownloadHandler(FileSystemEventHandler):
 
     def __init__(self, pipeline):
         self.pipeline = pipeline
 
     def on_created(self, event):
-
         if event.is_directory:
             return
 
         file_path = event.src_path
 
+        # Ignore temporary download files
+        if file_path.endswith((".crdownload", ".tmp", ".part")):
+            return
+
         print(f"New file detected: {file_path}")
 
         try:
-            self.pipeline.process_file(file_path)
+            if is_file_stable(file_path):
+                self.pipeline.process_file(file_path)
+            else:
+                print(f"File still downloading: {file_path}")
+
+        except FileNotFoundError:
+            print("File not ready yet...")
 
         except Exception as e:
             print(f"Error processing file: {e}")
@@ -53,7 +72,6 @@ def start_watching(folder_path):
 
     pipeline = ProcessingPipeline(folder_path)
 
-    # Process files already in folder
     process_existing_files(folder_path, pipeline)
 
     event_handler = DownloadHandler(pipeline)
