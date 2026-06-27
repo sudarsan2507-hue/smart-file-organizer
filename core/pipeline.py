@@ -2,6 +2,7 @@ import os
 
 from ai.content_reader import ContentReader
 from ai.hybrid_classifier import HybridClassifier
+from ai.metadata_extractor import extract_metadata
 from core.organizer import FileOrganizer
 from core.semantic_index import SemanticIndex
 
@@ -111,7 +112,9 @@ class ProcessingPipeline:
             try:
                 if embedding is None:
                     embedding = self.classifier.embedding_engine.embed_text(text)
-                self.semantic_index.add(destination, filename, final_category, embedding)
+                metadata = extract_metadata(text, destination, final_category)
+                self.semantic_index.add(destination, filename, final_category, embedding,
+                                         extra_metadata=metadata)
             except Exception as e:
                 print(f"[INDEX ERROR] Failed to index '{filename}': {e}")
 

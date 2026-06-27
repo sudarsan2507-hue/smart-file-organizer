@@ -22,6 +22,10 @@ class SemanticIndex:
         else:
             self.index = faiss.IndexFlatIP(dim)
 
+        self._filepath_to_id = {
+            entry["filepath"]: idx for idx, entry in enumerate(self.metadata)
+        }
+
     def _normalize(self, vector):
         vector = np.asarray(vector, dtype="float32")
         norm = np.linalg.norm(vector)
@@ -29,38 +33,63 @@ class SemanticIndex:
             return vector
         return vector / norm
 
-    def add(self, filepath, filename, category, embedding):
+    def add(self, filepath, filename, category, embedding, extra_metadata=None):
         normalized = self._normalize(embedding).reshape(1, -1)
         self.index.add(normalized)
-        self.metadata.append({
+
+        entry = {
             "filepath": filepath,
             "filename": filename,
             "category": category,
-        })
+        }
+        if extra_metadata:
+            entry.update(extra_metadata)
+
+        self._filepath_to_id[filepath] = len(self.metadata)
+        self.metadata.append(entry)
         self._save()
 
-    def search(self, query_embedding, top_k=5):
+    def _entry_to_result(self, entry, score):
+        return {
+            "filename": entry["filename"],
+            "filepath": entry["filepath"],
+            "category": entry["category"],
+            "score": float(score),
+            "word_count": entry.get("word_count"),
+            "language": entry.get("language"),
+            "tags": entry.get("tags", []),
+            "created_date": entry.get("created_date"),
+            "modified_date": entry.get("modified_date"),
+        }
+
+    def search(self, query_embedding, top_k=5, exclude_filepath=None):
         if self.index.ntotal == 0:
             return []
 
         normalized = self._normalize(query_embedding).reshape(1, -1)
-        scores, indices = self.index.search(normalized, min(top_k, self.index.ntotal))
+        fetch_k = min(top_k + (1 if exclude_filepath else 0), self.index.ntotal)
+        scores, indices = self.index.search(normalized, fetch_k)
 
         results = []
         for score, idx in zip(scores[0], indices[0]):
             if idx < 0 or idx >= len(self.metadata):
                 continue
             entry = self.metadata[idx]
+            if entry["filepath"] == exclude_filepath:
+                continue
             if not os.path.exists(entry["filepath"]):
                 continue
-            results.append({
-                "filename": entry["filename"],
-                "filepath": entry["filepath"],
-                "category": entry["category"],
-                "score": float(score),
-            })
+            results.append(self._entry_to_result(entry, score))
 
         return results[:top_k]
+
+    def find_similar(self, filepath, top_k=5):
+        row_id = self._filepath_to_id.get(filepath)
+        if row_id is None:
+            return []
+
+        embedding = self.index.reconstruct(row_id)
+        return self.search(embedding, top_k=top_k, exclude_filepath=filepath)
 
     def _save(self):
         os.makedirs(self.index_dir, exist_ok=True)
