@@ -24,15 +24,17 @@ class HybridClassifier:
                 "method": "keyword",
                 "category": keyword_category,
                 "confidence": keyword_confidence,
-                "scores": keyword_scores
+                "scores": keyword_scores,
+                "embedding": None
             }
 
         # Otherwise use AI embeddings
-        embedding_category, embedding_confidence, embedding_scores = self.embedding_engine.classify(text)
+        embedding_category, embedding_confidence, embedding_scores, embedding = self.embedding_engine.classify(text)
 
         return {
             "method": "embedding",
             "category": embedding_category,
             "confidence": embedding_confidence,
-            "scores": embedding_scores
+            "scores": embedding_scores,
+            "embedding": embedding
         }

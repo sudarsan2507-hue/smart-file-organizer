@@ -26,10 +26,14 @@ class EmbeddingEngine:
         return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
 
+    def embed_text(self, text):
+        return self.model.encode(text)
+
+
     def classify(self, text):
 
         # Convert file text to embedding
-        text_embedding = self.model.encode(text)
+        text_embedding = self.embed_text(text)
 
         scores = {}
 
@@ -42,4 +46,4 @@ class EmbeddingEngine:
         best_category = max(scores, key=scores.get)
         confidence = scores[best_category]
 
-        return best_category, confidence, scores
+        return best_category, confidence, scores, text_embedding

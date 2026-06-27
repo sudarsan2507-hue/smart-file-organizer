@@ -39,7 +39,7 @@ class FileOrganizer:
 
         # Prevent moving if already in correct folder
         if os.path.dirname(file_path) == destination_folder:
-            return
+            return file_path
 
         # Wait for file to be released (important for downloads)
         for attempt in range(10):
@@ -47,7 +47,7 @@ class FileOrganizer:
             try:
                 shutil.move(file_path, destination)
                 print(f"Moved {filename} -> {folder}")
-                return
+                return destination
 
             except PermissionError:
                 print(f"File locked, retrying... ({attempt+1}/10)")
@@ -55,6 +55,7 @@ class FileOrganizer:
 
             except Exception as e:
                 print(f"Move failed: {e}")
-                return
+                return None
 
         print(f"Could not move {filename} (file still in use)")
+        return None
