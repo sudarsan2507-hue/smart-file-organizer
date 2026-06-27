@@ -4,9 +4,9 @@ from ai.embedding_engine import EmbeddingEngine
 
 class HybridClassifier:
 
-    def __init__(self):
+    def __init__(self, learning_memory_path=None):
 
-        self.keyword_engine = KeywordEngine()
+        self.keyword_engine = KeywordEngine(learning_memory_path=learning_memory_path)
         self.embedding_engine = EmbeddingEngine()
 
         # minimum keyword score to trust keyword classification
