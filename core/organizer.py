@@ -41,6 +41,14 @@ class FileOrganizer:
         if os.path.dirname(file_path) == destination_folder:
             return file_path
 
+        # Avoid overwriting an existing file — rename with _1, _2, ...
+        if os.path.exists(destination):
+            base, ext = os.path.splitext(filename)
+            counter = 1
+            while os.path.exists(destination):
+                destination = os.path.join(destination_folder, f"{base}_{counter}{ext}")
+                counter += 1
+
         # Wait for file to be released (important for downloads)
         for attempt in range(10):
 
