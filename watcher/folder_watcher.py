@@ -161,10 +161,54 @@ def process_existing_files(folder_path, pipeline):
                 print(f"Error processing file: {e}")
 
 
+def sync_organized_to_index(folder_path, pipeline):
+    """Index any already-organized files that aren't in the semantic index yet.
+
+    Runs on startup so search works correctly after a watcher restart without
+    needing to re-organize every file.
+    """
+    from config.categories import CATEGORIES
+    from ai.metadata_extractor import extract_metadata
+
+    known_categories = set(CATEGORIES.keys()) | {
+        "Images", "Videos", "Audio", "Archives", "Others", "Review"
+    }
+    base_dir = os.path.abspath(folder_path)
+    reader = pipeline.reader
+
+    synced = 0
+    for category in os.listdir(base_dir):
+        category_path = os.path.join(base_dir, category)
+        if not os.path.isdir(category_path) or category not in known_categories:
+            continue
+        for filename in os.listdir(category_path):
+            filepath = os.path.join(category_path, filename)
+            if not os.path.isfile(filepath):
+                continue
+            if filepath in pipeline.semantic_index._filepath_to_id:
+                continue  # already indexed
+            try:
+                text = reader.read_file(filepath)
+                if not text.strip():
+                    continue
+                embedding = pipeline.classifier.embedding_engine.embed_text(text)
+                metadata = extract_metadata(text, filepath, category)
+                pipeline.semantic_index.add(filepath, filename, category, embedding,
+                                            extra_metadata=metadata)
+                synced += 1
+                print(f"[STARTUP INDEX] {category}/{filename}")
+            except Exception as e:
+                print(f"[STARTUP INDEX ERROR] {filename}: {e}")
+
+    if synced:
+        print(f"[STARTUP INDEX] Indexed {synced} previously organized file(s).")
+
+
 def start_watching(folder_path):
 
     pipeline = ProcessingPipeline(folder_path)
 
+    sync_organized_to_index(folder_path, pipeline)
     process_existing_files(folder_path, pipeline)
 
     event_handler = DownloadHandler(pipeline)

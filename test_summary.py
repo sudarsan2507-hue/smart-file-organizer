@@ -39,8 +39,10 @@ def main():
 
     # ---- Test 1: graceful fallback when Ollama is not running ----
     print("\n[TEST 1] SummaryEngine returns None when Ollama is unreachable")
+    import urllib.error
     engine = SummaryEngine()
-    result = engine.summarize("This is a test document about machine learning and projects.")
+    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("connection refused")):
+        result = engine.summarize("This is a test document about machine learning and projects.")
     assert result is None, f"Expected None when Ollama is not running, got: {result!r}"
     print("  -> PASSED: summarize() returned None gracefully.")
 
@@ -52,7 +54,8 @@ def main():
         test_dir, "report.txt",
         "This github repository contains machine learning model training scripts and dataset."
     )
-    result = pipeline.process_file(doc_path)
+    with patch.object(pipeline.summary_engine, "summarize", return_value=None):
+        result = pipeline.process_file(doc_path)
     assert result["category"] != "", "Expected a non-empty category"
 
     dest = os.path.join(test_dir, result["category"], "report.txt")
