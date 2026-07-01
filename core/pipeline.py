@@ -3,6 +3,7 @@ import os
 from ai.content_reader import ContentReader
 from ai.hybrid_classifier import HybridClassifier
 from ai.metadata_extractor import extract_metadata
+from ai.summary_engine import SummaryEngine
 from core.organizer import FileOrganizer
 from core.semantic_index import SemanticIndex
 
@@ -44,6 +45,7 @@ class ProcessingPipeline:
         index_dir = semantic_index_dir or os.path.join(base_directory, ".semantic_index")
         embedding_dim = self.classifier.embedding_engine.model.get_sentence_embedding_dimension()
         self.semantic_index = SemanticIndex(dim=embedding_dim, index_dir=index_dir)
+        self.summary_engine = SummaryEngine()
 
     def process_file(self, file_path):
 
@@ -113,6 +115,9 @@ class ProcessingPipeline:
                 if embedding is None:
                     embedding = self.classifier.embedding_engine.embed_text(text)
                 metadata = extract_metadata(text, destination, final_category)
+                summary = self.summary_engine.summarize(text)
+                if summary:
+                    metadata["summary"] = summary
                 self.semantic_index.add(destination, filename, final_category, embedding,
                                          extra_metadata=metadata)
             except Exception as e:

@@ -60,6 +60,7 @@ class SemanticIndex:
             "tags": entry.get("tags", []),
             "created_date": entry.get("created_date"),
             "modified_date": entry.get("modified_date"),
+            "summary": entry.get("summary"),
         }
 
     def search(self, query_embedding, top_k=5, exclude_filepath=None):

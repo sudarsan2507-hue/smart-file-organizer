@@ -16,6 +16,8 @@ def print_results(results, heading):
         print(f"{rank}. {result['filename']}  [{result['category']}]  score={result['score']:.3f}")
         print(f"   {result['filepath']}")
         print(f"   words={result.get('word_count')}  lang={result.get('language')}  tags=[{tags}]")
+        if result.get("summary"):
+            print(f"   summary: {result['summary']}")
 
 
 def main():
