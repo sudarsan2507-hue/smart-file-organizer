@@ -71,7 +71,26 @@ class ProcessingPipeline:
                 "action": "auto_organized",
             }
 
-        # -------- 2. CONTENT-BASED (AI classification) --------
+        # -------- 2. FILE SIZE GUARD --------
+
+        MAX_FILE_SIZE_MB = 50
+        try:
+            file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+        except OSError:
+            file_size_mb = 0
+
+        if file_size_mb > MAX_FILE_SIZE_MB:
+            print(f"[SKIP]  {filename} ({file_size_mb:.1f} MB) exceeds {MAX_FILE_SIZE_MB} MB limit -> Others")
+            self.organizer.organize(file_path, "Others")
+            return {
+                "filename": filename,
+                "category": "Others",
+                "confidence": 0.0,
+                "method": "too_large",
+                "action": "auto_organized",
+            }
+
+        # -------- 3. CONTENT-BASED (AI classification) --------
 
         text = self.reader.read_file(file_path)
 
@@ -98,17 +117,17 @@ class ProcessingPipeline:
         method = result["method"]
         embedding = result["embedding"]
 
-        # -------- 3. CONFIDENCE DECISION --------
+        # -------- 4. CONFIDENCE DECISION --------
 
         final_category, action = self._apply_confidence_decision(
             filename, category, confidence, method
         )
 
-        # -------- 4. MOVE FILE --------
+        # -------- 5. MOVE FILE --------
 
         destination = self.organizer.organize(file_path, final_category)
 
-        # -------- 5. SEMANTIC INDEXING --------
+        # -------- 6. SEMANTIC INDEXING --------
 
         if destination is not None:
             try:
