@@ -63,6 +63,19 @@ class DownloadHandler(FileSystemEventHandler):
         except Exception as e:
             print(f"Error processing file: {e}")
 
+    def on_deleted(self, event):
+        if event.is_directory:
+            return
+
+        filepath = os.path.abspath(event.src_path)
+        parent_dir = os.path.dirname(filepath)
+
+        # Only clean up files that were inside a category subfolder
+        if os.path.dirname(parent_dir) == self.base_dir:
+            removed = self.pipeline.semantic_index.remove(filepath)
+            if removed:
+                print(f"[INDEX] Removed '{os.path.basename(filepath)}' from semantic index.")
+
     def on_moved(self, event):
         if event.is_directory:
             return

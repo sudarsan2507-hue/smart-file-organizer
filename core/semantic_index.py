@@ -92,6 +92,23 @@ class SemanticIndex:
         embedding = self.index.reconstruct(row_id)
         return self.search(embedding, top_k=top_k, exclude_filepath=filepath)
 
+    def remove(self, filepath):
+        row_id = self._filepath_to_id.get(filepath)
+        if row_id is None:
+            return False
+        keep_ids = [i for i in range(len(self.metadata)) if i != row_id]
+        new_index = faiss.IndexFlatIP(self.dim)
+        for i in keep_ids:
+            vec = self.index.reconstruct(i).reshape(1, -1)
+            new_index.add(vec)
+        self.index = new_index
+        self.metadata = [self.metadata[i] for i in keep_ids]
+        self._filepath_to_id = {
+            entry["filepath"]: idx for idx, entry in enumerate(self.metadata)
+        }
+        self._save()
+        return True
+
     def _save(self):
         os.makedirs(self.index_dir, exist_ok=True)
         faiss.write_index(self.index, self.index_path)
