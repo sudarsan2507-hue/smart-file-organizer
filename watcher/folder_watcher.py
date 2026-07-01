@@ -129,6 +129,10 @@ class DownloadHandler(FileSystemEventHandler):
                         memory = LearningMemory(filepath=learning_memory_path)
                         boosted_keywords = memory.record_correction(text, dest_category)
 
+                        # Keep the classifier's cached boosts in sync so the
+                        # very next file processed immediately benefits.
+                        self.pipeline.classifier.keyword_engine.reload_memory()
+
                         if boosted_keywords:
                             print(f"[LEARNING] User corrected prediction for '{filename}': {src_category} -> {dest_category}")
                             print(f"[LEARNING] Boosted weights for keywords: {boosted_keywords} -> '{dest_category}'")

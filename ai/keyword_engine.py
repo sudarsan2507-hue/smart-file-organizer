@@ -1,3 +1,5 @@
+import os
+
 from config.categories import CATEGORIES
 from core.learning_memory import LearningMemory
 
@@ -11,6 +13,24 @@ class KeywordEngine:
 
     def __init__(self, learning_memory_path=None):
         self.learning_memory_path = learning_memory_path
+        # Resolve and store the path once so mtime checks in classify() are cheap.
+        self._memory_path = LearningMemory(filepath=learning_memory_path).filepath
+        self._boosts = {}
+        self._boosts_mtime = None
+        self._load_boosts()
+
+    def _load_boosts(self):
+        self._boosts = LearningMemory(filepath=self.learning_memory_path).get_boosts()
+        try:
+            self._boosts_mtime = (
+                os.path.getmtime(self._memory_path)
+                if os.path.exists(self._memory_path) else None
+            )
+        except OSError:
+            self._boosts_mtime = None
+
+    def reload_memory(self):
+        self._load_boosts()
 
     def classify(self, text):
 
@@ -18,9 +38,20 @@ class KeywordEngine:
 
         scores = {}
 
-        # Load dynamic boosts from user feedback
-        memory = LearningMemory(filepath=self.learning_memory_path)
-        boosts = memory.get_boosts()
+        # Auto-reload if the learning memory file changed on disk. The watcher
+        # calls reload_memory() explicitly after each correction, so in
+        # production this check costs one getmtime syscall and no JSON parse.
+        try:
+            current_mtime = (
+                os.path.getmtime(self._memory_path)
+                if os.path.exists(self._memory_path) else None
+            )
+        except OSError:
+            current_mtime = None
+        if current_mtime != self._boosts_mtime:
+            self._load_boosts()
+
+        boosts = self._boosts
 
         for category, keywords in CATEGORIES.items():
             score = 0.0
